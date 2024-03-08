@@ -11,10 +11,9 @@ sdkver="31"
 mesasrc="https://gitlab.freedesktop.org/mesa/mesa.git"
 
 #array of string => commit/branch;patch args
-patches=( 
-	"Fix-dynamic-state-not-always-being-emitted;merge_requests/27961;"
-	"visual-issues;merge_requests/27969;"
-	"visual-issues-in-some-games-a7xx;commit/9de628b65ca36b920dc6181251b33c436cad1b68;--reverse"
+patches=(	
+	"visual-issues-in-some-games-1;merge_requests/27986;--reverse"
+	"visual-issues-in-some-games-2;commit/9de628b65ca36b920dc6181251b33c436cad1b68;--reverse"
 	"8gen3-fix;merge_requests/27912;"
 	"mem-leaks-tu-shader;merge_requests/27847;"
 )
@@ -189,25 +188,34 @@ EOF
 	cp "$workdir"/vulkan.ad07XX.so "$packagedir"
 
 	echo "Packing files in to adrenotool package ..." $'\n'
-	zip -r "$workdir"/"$filename$patched".zip ./*
+	zip -9 "$workdir"/"$filename$patched".zip ./*
 
 	cd "$workdir"
 	
 	echo "Turnip - $mesa_version - $date" > release
 	echo "$mesa_version"_"$commit_short" > tag
 	echo  $filename > filename
-	echo "https://gitlab.freedesktop.org/mesa/mesa/-/commit/$commit_short" > description
-	echo "Patches" >> description
+	echo "### Base commit : [$commit_short](https://gitlab.freedesktop.org/mesa/mesa/-/commit/$commit_short)" > description
+	echo "## Upstreams / Patches" >> description
 	
 	if (( ${#patches[@]} )); then
+		echo "These have not been merged by Mesa officially yet and may introduce bugs or" >> description
+		echo "we revert stuff that breaks games but still got merged in (see --reverse)" >> description
 		for patch in ${patches[@]}; do
-			echo "- $patch" >> description
+			patch_name="$(echo $patch | cut -d ";" -f 1 | xargs)"
+			patch_source="$(echo $patch | cut -d ";" -f 2 | xargs)"
+			patch_args="$(echo $patch | cut -d ";" -f 3 | xargs)"
+			echo "- $patch_name, [$patch_source](https://gitlab.freedesktop.org/mesa/mesa/-/$patch_source), $patch_args" >> description
 		done
 		echo "true" > patched
+		echo "" >> description
+		echo "_Upstreams / Patches are only applied to the patched version (\_patched.zip)_" >> description
 	else
 		echo "No patch" >> description
 		echo "false" > patched
 	fi
+	
+	echo "_If a patch is not present anymore, it's most likely because it got merged, is not needed anymore or was breaking something._" >> description
 
 	if ! [ -a "$workdir"/"$filename".zip ];
 		then echo -e "$red-Packing failed!$nocolor" && exit 1
