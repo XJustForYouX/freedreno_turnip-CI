@@ -11,11 +11,11 @@ sdkver="31"
 mesasrc="https://gitlab.freedesktop.org/mesa/mesa.git"
 
 #array of string => commit/branch;patch args
-patches=(	
-	"visual-issues-in-some-games-1;merge_requests/27986;--reverse"
-	"visual-issues-in-some-games-2;commit/9de628b65ca36b920dc6181251b33c436cad1b68;--reverse"
+patches=(
 	"8gen3-fix;merge_requests/27912;"
-	"mem-leaks-tu-shader;merge_requests/27847;"
+	"Mem-leaks-tu-shader;merge_requests/27847;"
+	"Fix-undefined-value-gl_ClipDistance;merge_requests/28109;"
+	"Visual-fixes-in-some-games;../../patches/disable_has_branch_and_or.patch;"
 )
 #patches=()
 commit=""
@@ -109,13 +109,21 @@ prepare_workdir(){
 		for patch in ${patches[@]}; do
 			echo "Applying patch $patch"
 			patch_source="$(echo $patch | cut -d ";" -f 2 | xargs)"
-			patch_file="${patch_source#*\/}"
-			patch_args=$(echo $patch | cut -d ";" -f 3 | xargs)
-			curl --output "$patch_file".patch -k --retry 5  https://gitlab.freedesktop.org/mesa/mesa/-/"$patch_source".patch
-		
-			git apply $patch_args "$patch_file".patch
+			if [[ $patch_source == *"../.."* ]]; then
+				git apply "$patch_source"
+				sleep 1
+			else 
+				patch_file="${patch_source#*\/}"
+				patch_args=$(echo $patch | cut -d ";" -f 3 | xargs)
+				curl --output "$patch_file".patch -k --retry-delay 30 --retry 5 -f --retry-all-errors https://gitlab.freedesktop.org/mesa/mesa/-/"$patch_source".patch
+				sleep 1
+			
+				git apply $patch_args "$patch_file".patch
+			fi
+			
 		done
 	fi
+
 }
 
 build_lib_for_android(){
@@ -199,13 +207,17 @@ EOF
 	echo "## Upstreams / Patches" >> description
 	
 	if (( ${#patches[@]} )); then
-		echo "These have not been merged by Mesa officially yet and may introduce bugs or" >> description
+		echo "Theses have not been merged by Mesa officially yet and may introduce bugs or" >> description
 		echo "we revert stuff that breaks games but still got merged in (see --reverse)" >> description
 		for patch in ${patches[@]}; do
 			patch_name="$(echo $patch | cut -d ";" -f 1 | xargs)"
 			patch_source="$(echo $patch | cut -d ";" -f 2 | xargs)"
 			patch_args="$(echo $patch | cut -d ";" -f 3 | xargs)"
-			echo "- $patch_name, [$patch_source](https://gitlab.freedesktop.org/mesa/mesa/-/$patch_source), $patch_args" >> description
+			if [[ $patch_source == *"../.."* ]]; then
+				echo "- $patch_name, $patch_source, $patch_args" >> description
+			else 
+				echo "- $patch_name, [$patch_source](https://gitlab.freedesktop.org/mesa/mesa/-/$patch_source), $patch_args" >> description
+			fi
 		done
 		echo "true" > patched
 		echo "" >> description
