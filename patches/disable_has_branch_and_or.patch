@@ -1,6 +1,7 @@
 Author: Weab-chan
 Disable has_branch_and_or since it produces inverted colors in some games
 (Previously, we were reverting offending commits. In any case, this is not a permanent solution.)
+(Obsolete, actually fixed by https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/28148)
 
 diff --git a/src/freedreno/ir3/ir3_compiler.c b/src/freedreno/ir3/ir3_compiler.c
 index 7e03a0a..6bc0ae1 100644

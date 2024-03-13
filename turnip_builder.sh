@@ -15,7 +15,7 @@ patches=(
 	"8gen3-fix;merge_requests/27912;"
 	"Mem-leaks-tu-shader;merge_requests/27847;"
 	"Fix-undefined-value-gl_ClipDistance;merge_requests/28109;"
-	"Visual-fixes-in-some-games;../../patches/disable_has_branch_and_or.patch;"
+	"Visual-fixes-in-some-games;merge_requests/28148;"
 )
 #patches=()
 commit=""
@@ -207,7 +207,7 @@ EOF
 	echo "## Upstreams / Patches" >> description
 	
 	if (( ${#patches[@]} )); then
-		echo "Theses have not been merged by Mesa officially yet and may introduce bugs or" >> description
+		echo "These have not been merged by Mesa officially yet and may introduce bugs or" >> description
 		echo "we revert stuff that breaks games but still got merged in (see --reverse)" >> description
 		for patch in ${patches[@]}; do
 			patch_name="$(echo $patch | cut -d ";" -f 1 | xargs)"
